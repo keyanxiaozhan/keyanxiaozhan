@@ -92,6 +92,21 @@ export const api = {
 
   // 返现 (公开)
   checkReferral: (phone) => request('/api/referrals/check?phone=' + encodeURIComponent(phone)),
-};
-
+  // ===== 会员 Auth (8/10 补: auth.js 调 api.register/login/getMe/logout, 之前漏了) =====
+  // 后端: POST /api/auth/register   body: {phone, password, referral_code}
+  //       POST /api/auth/login      body: {phone, password}
+  //       GET  /api/auth/me         header: Authorization: Bearer <token>
+  //       POST /api/auth/logout     header: Authorization: Bearer <token>
+  // 返回: register/login => {token, user:{id,phone,referral_code}}
+  //       me               => {user, stats:{invite_count,total_spent,...}}
+  register: (phone, password, referralCode = '') =>
+    request('/api/auth/register', {
+      method: 'POST',
+      data: { phone, password, referral_code: referralCode || '' },
+    }),
+  login: (phone, password) =>
+    request('/api/auth/login', { method: 'POST', data: { phone, password } }),
+  getMe: () => request('/api/auth/me'),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+ };
 export { API_BASE };
