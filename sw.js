@@ -4,7 +4,7 @@
 //
 // 注意: 不要缓存 /api/* (后端数据总是要新鲜的)
 
-const CACHE_NAME = 'characterization-v8';
+const CACHE_NAME = 'characterization-v9';
 const STATIC_ASSETS = [
   './',
   './index.html',
