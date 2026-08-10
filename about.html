@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2c3e50" />
+  <title>我的</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="nav-bar">
+      <a class="nav-back" href="./index.html" aria-label="返回"></a>
+      <div class="nav-title" id="nav-title">我的</div>
+      <span class="nav-spacer"></span>
+    </header>
+
+    <div class="loading" id="loading-state">加载中...</div>
+
+    <div class="container hidden" id="content">
+      <!-- 公司介绍 (顶部) -->
+      <div class="card about-intro">
+        <div class="about-intro-title">关于我们</div>
+        <p class="about-intro-text" id="about-text">
+          我们是专注<strong class="hl">材料微观表征与理化性能测试</strong>的专业科研服务平台，聚焦高校科研、企业研发、学术论文、项目检测等核心场景。
+        </p>
+      </div>
+
+      <!-- 客服联系 (8/10 加: 客服名字/微信号/二维码全部后端可改) -->
+      <div class="card staff-card hidden" id="staff-card">
+        <div class="section-title">客服联系</div>
+        <div class="about-row">
+          <span class="about-label">客服</span>
+          <span class="about-value" id="staff-name">材料表征-小助手</span>
+        </div>
+        <div class="about-row hidden" id="staff-wechat-row">
+          <span class="about-label">微信号</span>
+          <span class="about-value action" id="staff-wechat-id"></span>
+        </div>
+        <div class="qr-wrap hidden" id="staff-qr-wrap">
+          <img class="qr-img" id="staff-qr-img" alt="客服二维码" />
+          <span class="qr-tip">长按识别二维码加好友 / 点击查看大图</span>
+        </div>
+      </div>
+
+      <!-- 联系方式 (8/10 加: 后端 company.contact_* 控制) -->
+      <div class="card hidden" id="contact-card">
+        <div class="section-title">联系方式</div>
+        <div class="about-row hidden" id="phone-row">
+          <span class="about-label">电话</span>
+          <span class="about-value" id="phone-value">-</span>
+        </div>
+        <div class="about-row hidden" id="email-row">
+          <span class="about-label">邮箱</span>
+          <span class="about-value" id="email-value">-</span>
+        </div>
+        <div class="about-row hidden" id="address-row">
+          <span class="about-label">地址</span>
+          <span class="about-value" id="address-value">-</span>
+        </div>
+        <div class="about-row hidden" id="website-row">
+          <span class="about-label">官网</span>
+          <span class="about-value action" id="website-value">-</span>
+        </div>
+        <div class="about-row hidden" id="no-contact">
+          <span class="about-value" style="color:#95a5a6;">暂无联系方式, 请稍后再试</span>
+        </div>
+      </div>
+
+      <!-- 登录/注册 卡 -->
+      <div class="card hidden" id="auth-card">
+        <div class="auth-tabs">
+          <div class="auth-tab active" data-mode="login" id="tab-login">登录</div>
+          <div class="auth-tab" data-mode="register" id="tab-register">注册</div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">手机号</div>
+          <input class="text-input" id="auth-phone" type="tel" inputmode="numeric" maxlength="11" placeholder="请输入手机号" />
+        </div>
+
+        <div class="form-group">
+          <div class="form-label">密码</div>
+          <input class="text-input" id="auth-password" type="password" placeholder="至少 6 位" />
+        </div>
+
+        <div class="form-group hidden" id="referral-group">
+          <div class="form-label">
+            <span>推荐码</span>
+            <span class="label-opt">(选填)</span>
+          </div>
+          <input class="text-input" id="auth-referral" type="text" placeholder="如有推荐人请填" />
+        </div>
+
+        <button class="btn" id="auth-submit">登录</button>
+        <div class="auth-error hidden" id="auth-error"></div>
+      </div>
+
+      <!-- 用户信息 卡 (已登录) -->
+      <div class="card hidden" id="profile-card">
+        <div class="profile-header">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <div class="profile-phone" id="profile-phone">-</div>
+            <div class="profile-id">用户 ID: <span id="profile-id">-</span></div>
+          </div>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat">
+            <div class="stat-num" id="stat-invites">-</div>
+            <div class="stat-label">邀请人数</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" id="stat-spent">-</div>
+            <div class="stat-label">累计消费</div>
+          </div>
+        </div>
+
+        <div class="profile-referral">
+          <div class="form-label">我的推荐码</div>
+          <div class="referral-row">
+            <input class="text-input" id="profile-referral" readonly />
+            <button class="btn btn-secondary btn-sm" id="btn-copy-referral">复制</button>
+          </div>
+          <div class="referral-hint">
+            分享给好友下单,TA 获得优惠,你也获得返现奖励
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-logout">退出登录</button>
+      </div>
+
+      <!-- 关于本应用 (只是版本信息, 不再展示工作人员/联系方式) -->
+      <div class="card">
+        <div class="section-title">关于本应用</div>
+        <div class="about-row">
+          <span class="about-label">版本</span>
+          <span class="about-value" id="app-version">v1.0.0</span>
+        </div>
+        <div class="about-row">
+          <span class="about-label">技术</span>
+          <span class="about-value">PWA · 静态网页</span>
+        </div>
+        <div class="mt-12 text-light" style="font-size: 12px; line-height: 1.6;">
+          本应用是材料表征测试的在线预约入口。如需安装到手机桌面,
+          浏览器菜单选择"添加到主屏幕"即可。
+        </div>
+      </div>
+    </div>
+
+    <button class="theme-fab" data-theme-fab aria-label="切换主题">☾</button>
+
+    <nav class="tab-bar">
+      <a href="./index.html" data-tab="home"><span>首页</span></a>
+      <a href="./about.html" data-tab="about" class="active"><span>我的</span></a>
+    </nav>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+    import { boot, toast, copyText, modal, showNotice } from './js/common.js';
+    import {
+      login, register, logout, fetchMe, isLoggedIn, validatePhone, validatePassword,
+    } from './js/auth.js';
+    boot();
+
+    // ===== State =====
+    const state = {
+      mode: 'login',           // 'login' | 'register'
+      submitting: false,
+      user: null,
+      stats: null,
+      company: null,
+    };
+
+    // ===== DOM =====
+    const $ = (id) => document.getElementById(id);
+    const loadingEl = $('loading-state');
+    const contentEl = $('content');
+    const authCard = $('auth-card');
+    const profileCard = $('profile-card');
+    const staffCard = $('staff-card');
+    const tabLogin = $('tab-login');
+    const tabRegister = $('tab-register');
+    const authPhone = $('auth-phone');
+    const authPassword = $('auth-password');
+    const authReferral = $('auth-referral');
+    const referralGroup = $('referral-group');
+    const authSubmit = $('auth-submit');
+    const authError = $('auth-error');
+
+    // ===== 切换登录/注册 =====
+    function setMode(mode) {
+      state.mode = mode;
+      tabLogin.classList.toggle('active', mode === 'login');
+      tabRegister.classList.toggle('active', mode === 'register');
+      referralGroup.classList.toggle('hidden', mode !== 'register');
+      authSubmit.textContent = mode === 'login' ? '登录' : '注册';
+      authError.classList.add('hidden');
+    }
+
+    tabLogin.onclick = () => setMode('login');
+    tabRegister.onclick = () => setMode('register');
+
+    // ===== 错误显示 =====
+    function showError(msg) {
+      authError.textContent = msg;
+      authError.classList.remove('hidden');
+    }
+
+    // ===== 提交 =====
+    authSubmit.onclick = async () => {
+      if (state.submitting) return;
+      const phone = authPhone.value.trim();
+      const password = authPassword.value;
+      const referral = authReferral.value.trim();
+
+      if (!validatePhone(phone)) { showError('请输入正确的手机号'); return; }
+      if (!validatePassword(password)) { showError('密码至少 6 位'); return; }
+
+      state.submitting = true;
+      authSubmit.disabled = true;
+      const orig = authSubmit.textContent;
+      authSubmit.textContent = state.mode === 'login' ? '登录中...' : '注册中...';
+      authError.classList.add('hidden');
+
+      try {
+        if (state.mode === 'login') {
+          await login(phone, password);
+        } else {
+          await register(phone, password, referral);
+        }
+        // 登录/注册成功, 拉个人中心
+        await loadProfile();
+        renderProfile();
+        toast(state.mode === 'login' ? '登录成功' : '注册成功', 'success');
+      } catch (e) {
+        showError(e.message || '操作失败');
+        state.submitting = false;
+        authSubmit.disabled = false;
+        authSubmit.textContent = orig;
+      }
+    };
+
+    // ===== 退出 =====
+    $('btn-logout').onclick = async () => {
+      const ok = await modal({
+        title: '退出登录',
+        content: '退出后可以重新登录,记录会保留',
+        confirmText: '退出',
+      });
+      if (!ok.confirm) return;
+      await logout();
+      state.user = null;
+      state.stats = null;
+      renderAuth();
+      toast('已退出');
+    };
+
+    // ===== 复制推荐码 =====
+    $('btn-copy-referral').onclick = () => {
+      const code = $('profile-referral').value;
+      if (code) copyText(code);
+    };
+
+    // ===== 渲染 =====
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function setRow(rowId, valueId, value, isAction = false) {
+      if (!value) return false;
+      document.getElementById(rowId).classList.remove('hidden');
+      const v = document.getElementById(valueId);
+      v.textContent = value;
+      if (isAction) v.classList.add('action');
+      return true;
+    }
+
+    function renderCompany(company) {
+      // 关于我们文字 (后端可改, 留空 = 默认文案)
+      if (company && company.about_text) {
+        const aboutText = $('about-text');
+        if (aboutText) aboutText.textContent = company.about_text;
+      }
+
+      // 工作人员高亮卡
+      if (company && (company.staff_wechat_id || company.staff_wechat_qr_url)) {
+        staffCard.classList.remove('hidden');
+        if (company.staff_name) $('staff-name').textContent = company.staff_name;
+        if (company.staff_wechat_id) {
+          $('staff-wechat-row').classList.remove('hidden');
+          const el = $('staff-wechat-id');
+          el.textContent = company.staff_wechat_id + '  复制';
+          el.onclick = () => copyText(company.staff_wechat_id);
+        }
+        if (company.staff_wechat_qr_url) {
+          $('staff-qr-wrap').classList.remove('hidden');
+          const img = $('staff-qr-img');
+          img.src = company.staff_wechat_qr_url;
+          img.onclick = () => window.open(company.staff_wechat_qr_url, '_blank');
+        }
+      }
+
+      // 联系方式
+      let any = false;
+      any = setRow('phone-row', 'phone-value', company && company.phone) || any;
+      any = setRow('email-row', 'email-value', company && company.email) || any;
+      any = setRow('address-row', 'address-value', company && company.address) || any;
+      const websiteShown = setRow('website-row', 'website-value', company && company.website, true);
+      if (websiteShown) {
+        $('website-value').onclick = () => {
+          const url = company.website.startsWith('http') ? company.website : 'https://' + company.website;
+          window.open(url, '_blank');
+        };
+      }
+      any = websiteShown || any;
+      if (any) {
+        $('contact-card').classList.remove('hidden');
+      } else {
+        $('no-contact').classList.remove('hidden');
+      }
+    }
+
+    function renderAuth() {
+      authCard.classList.remove('hidden');
+      profileCard.classList.add('hidden');
+      // 重置表单
+      authPhone.value = '';
+      authPassword.value = '';
+      authReferral.value = '';
+      setMode('login');
+      state.submitting = false;
+      authSubmit.disabled = false;
+      authSubmit.textContent = '登录';
+    }
+
+    function renderProfile() {
+      authCard.classList.add('hidden');
+      profileCard.classList.remove('hidden');
+
+      const u = state.user || {};
+      $('profile-phone').textContent = u.phone || '-';
+      $('profile-id').textContent = u.id || '-';
+      $('profile-referral').value = u.referral_code || '';
+
+      const s = state.stats || {};
+      $('stat-invites').textContent = s.invite_count != null ? s.invite_count : 0;
+      const spent = Number(s.total_spent) || 0;
+      $('stat-spent').textContent = '¥' + spent.toFixed(2);
+    }
+
+    // ===== 拉数据 =====
+    async function loadProfile() {
+      try {
+        const res = await fetchMe();
+        if (res) {
+          state.user = res.user || null;
+          state.stats = res.stats || null;
+        } else {
+          state.user = null;
+          state.stats = null;
+        }
+      } catch (e) {
+        // fetchMe 失败, 但 isLoggedIn 可能还 true (网络问题)
+        // 让用户重试, 不强制退出
+        throw e;
+      }
+    }
+
+    async function loadCompany() {
+      try {
+        state.company = await api.getCompany();
+        renderCompany(state.company);
+        showNotice(state.company);
+      } catch (e) {
+        // 联系方式失败不阻塞
+        console.warn('加载公司信息失败:', e.message);
+      }
+    }
+
+    async function init() {
+      // 公司信息总是加载 (无论登录与否, 客服联系方式都看)
+      loadCompany();
+
+      if (isLoggedIn()) {
+        try {
+          await loadProfile();
+          if (state.user) {
+            renderProfile();
+          } else {
+            // token 失效, 已自动清空
+            renderAuth();
+          }
+        } catch (e) {
+          // 网络问题
+          renderAuth();
+        }
+      } else {
+        renderAuth();
+      }
+
+      loadingEl.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+    }
+
+    init();
+  </script>
+</body>
+</html>

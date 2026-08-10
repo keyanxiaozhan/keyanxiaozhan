@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2c3e50" />
+  <meta name="description" content="材料表征测试在线预约" />
+  <title>材料表征预约</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 顶部 banner -->
+    <section class="banner">
+      <div class="banner-name" id="company-name">加载中...</div>
+    </section>
+
+    <!-- 主内容 -->
+    <div class="container">
+      <div class="loading" id="loading-state">
+        <text>加载中...</text>
+      </div>
+
+      <div id="list-state" class="hidden">
+        <div class="list-header">
+          <span class="list-title">我们提供的材料表征手段</span>
+          <span class="list-count" id="list-count">共 0 项</span>
+        </div>
+
+        <div class="empty hidden" id="empty-state">
+          <div>暂无数据</div>
+          <div class="empty-hint">请稍后再试</div>
+        </div>
+
+        <div id="material-list"></div>
+      </div>
+    </div>
+
+    <!-- 浮动暗色切换 -->
+    <button class="theme-fab" data-theme-fab aria-label="切换主题">☾</button>
+
+    <!-- 底部 tab -->
+    <nav class="tab-bar">
+      <a href="./index.html" data-tab="home" class="active"><span>首页</span></a>
+      <a href="./about.html" data-tab="about"><span>我的</span></a>
+    </nav>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+    import { boot, toast, showNotice } from './js/common.js';
+    boot();
+
+    const companyEl = document.getElementById('company-name');
+    const loadingEl = document.getElementById('loading-state');
+    const listState = document.getElementById('list-state');
+    const listEl = document.getElementById('material-list');
+    const countEl = document.getElementById('list-count');
+    const emptyEl = document.getElementById('empty-state');
+
+    async function load() {
+      try {
+        const [company, materials] = await Promise.all([
+          api.getCompany(),
+          api.listMaterials(),
+        ]);
+        companyEl.textContent = company.name || '材料表征';
+        document.title = company.name || '材料表征预约';
+        showNotice(company);
+
+        loadingEl.classList.add('hidden');
+        listState.classList.remove('hidden');
+
+        if (!materials || materials.length === 0) {
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        countEl.textContent = '共 ' + materials.length + ' 项';
+        listEl.innerHTML = materials.map(m => `
+          <a class="material-item" href="./detail.html?slug=${encodeURIComponent(m.slug)}">
+            <div class="material-title">${escapeHtml(m.name)}</div>
+            <div class="material-desc">${escapeHtml(m.short_desc || '')}</div>
+            <div class="material-arrow">›</div>
+          </a>
+        `).join('');
+      } catch (e) {
+        companyEl.textContent = '加载失败';
+        loadingEl.textContent = '加载失败: ' + e.message;
+        toast('加载失败: ' + e.message, 'error');
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    load();
+  </script>
+</body>
+</html>

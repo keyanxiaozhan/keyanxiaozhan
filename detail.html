@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2c3e50" />
+  <title>材料详情</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 顶部 nav -->
+    <header class="nav-bar">
+      <a class="nav-back" href="javascript:history.back()" aria-label="返回"></a>
+      <div class="nav-title" id="nav-title">材料详情</div>
+      <span class="nav-spacer"></span>
+    </header>
+
+    <!-- 加载中 -->
+    <div class="loading" id="loading-state">加载中...</div>
+
+    <!-- 主内容 -->
+    <div id="content" class="hidden">
+      <!-- 顶部名片图 -->
+      <div class="card-image-wrap" id="card-image-wrap"></div>
+
+      <div class="container">
+        <!-- 标题 + 短描述 -->
+        <div class="card hero">
+          <div class="hero-title" id="hero-title"></div>
+          <div class="hero-subtitle" id="hero-subtitle"></div>
+        </div>
+
+        <!-- 价格表 -->
+        <div class="card" id="price-card">
+          <div class="price-header">
+            <div class="section-title">价格</div>
+            <div class="price-base hidden" id="price-base"></div>
+          </div>
+          <div class="price-table-wrap hidden" id="price-table-wrap">
+            <div class="price-row price-row-head">
+              <div class="price-col">样品类型</div>
+              <div class="price-col">规格</div>
+              <div class="price-col price-col-price">价格</div>
+            </div>
+            <div id="price-rows"></div>
+          </div>
+          <div class="price-note hidden" id="price-note">
+            * 表内价格为参考价,实际价格以问卷提交后系统计算为准 (含加急/特殊样品等加价)
+          </div>
+        </div>
+
+        <!-- 完整介绍 -->
+        <div class="card">
+          <div class="section-title">详细介绍</div>
+          <div class="section-content" id="full-desc"></div>
+        </div>
+
+        <!-- 注意事项 -->
+        <div class="card hidden" id="notes-card">
+          <div class="section-title">注意事项</div>
+          <div class="notes-list" id="notes-list"></div>
+        </div>
+
+        <!-- 预约按钮 -->
+        <div class="action-bar">
+          <button class="btn" id="book-btn">立即预约测试</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 浮动暗色切换 -->
+    <button class="theme-fab" data-theme-fab aria-label="切换主题">☾</button>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+    import { boot, toast, getQuery, copyText, showNotice } from './js/common.js';
+    boot();
+
+    const slug = getQuery('slug');
+    const loadingEl = document.getElementById('loading-state');
+    const contentEl = document.getElementById('content');
+    const cardImageWrap = document.getElementById('card-image-wrap');
+    const navTitle = document.getElementById('nav-title');
+    const heroTitle = document.getElementById('hero-title');
+    const heroSubtitle = document.getElementById('hero-subtitle');
+    const priceCard = document.getElementById('price-card');
+    const priceBase = document.getElementById('price-base');
+    const priceTableWrap = document.getElementById('price-table-wrap');
+    const priceRows = document.getElementById('price-rows');
+    const priceNote = document.getElementById('price-note');
+    const fullDesc = document.getElementById('full-desc');
+    const notesCard = document.getElementById('notes-card');
+    const notesList = document.getElementById('notes-list');
+    const bookBtn = document.getElementById('book-btn');
+
+    let material = null;
+    let company = null;
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function render() {
+      if (!material) return;
+      navTitle.textContent = material.name;
+      document.title = material.name;
+
+      // 顶部图: 材料自己的图优先, 留空回退公司名片图 (8/10 加)
+      const cardImage = (material.image_url || '').trim() || (company && company.card_image_url) || '';
+      if (cardImage) {
+        cardImageWrap.innerHTML = `<img class="card-image" src="${escapeHtml(cardImage)}" alt="${escapeHtml(company && company.name || '')}" />`;
+        cardImageWrap.onclick = () => window.open(cardImage, '_blank');
+      } else {
+        cardImageWrap.innerHTML = `<div class="card-placeholder"><div class="card-placeholder-name">${escapeHtml((company && company.name) || '')}</div></div>`;
+      }
+
+      heroTitle.textContent = material.name || '';
+      heroSubtitle.textContent = material.short_desc || '';
+
+      // 价格
+      const hasBase = material.base_price && Number(material.base_price) > 0;
+      const hasTable = material.price_table && material.price_table.length;
+      if (!hasBase && !hasTable) {
+        priceCard.classList.add('hidden');
+      } else {
+        priceCard.classList.remove('hidden');
+        if (hasBase) {
+          priceBase.textContent = '起 ¥' + material.base_price;
+          priceBase.classList.remove('hidden');
+        }
+        if (hasTable) {
+          priceTableWrap.classList.remove('hidden');
+          priceRows.innerHTML = material.price_table.map(row => `
+            <div class="price-row">
+              <div class="price-col">${escapeHtml(row['样品类型'] || '-')}</div>
+              <div class="price-col">${escapeHtml(row['规格'] || '-')}</div>
+              <div class="price-col price-col-price">¥${escapeHtml(row['价格(元/样)'] || '')}</div>
+            </div>
+          `).join('');
+          priceNote.classList.remove('hidden');
+        } else {
+          priceTableWrap.classList.add('hidden');
+          priceNote.classList.add('hidden');
+        }
+      }
+
+      // 完整介绍
+      fullDesc.textContent = material.full_desc || '';
+
+      // 注意事项
+      if (material.notes && material.notes.length) {
+        notesCard.classList.remove('hidden');
+        notesList.innerHTML = material.notes.map(n => `
+          <div class="notes-item">
+            <div class="notes-bullet">·</div>
+            <div class="notes-text">${escapeHtml(n)}</div>
+          </div>
+        `).join('');
+      }
+
+      // 预约按钮
+      bookBtn.onclick = () => {
+        if (!material) return;
+        const url = './booking.html?material_id=' + material.id
+          + '&material_slug=' + encodeURIComponent(material.slug)
+          + '&material_name=' + encodeURIComponent(material.name)
+          + '&base_price=' + (material.base_price || 0);
+        location.href = url;
+      };
+
+      loadingEl.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+    }
+
+    async function load() {
+      if (!slug) {
+        toast('缺少材料标识', 'error');
+        return;
+      }
+      try {
+        const [m, c] = await Promise.all([
+          api.getMaterial(slug),
+          api.getCompany(),
+        ]);
+        material = m;
+        company = c;
+        render();
+        showNotice(c);
+      } catch (e) {
+        loadingEl.textContent = '加载失败: ' + e.message;
+        toast('加载失败: ' + e.message, 'error');
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

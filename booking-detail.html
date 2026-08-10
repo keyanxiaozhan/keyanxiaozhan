@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2c3e50" />
+  <title>预约详情</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="nav-bar">
+      <a class="nav-back" href="./index.html" aria-label="返回"></a>
+      <div class="nav-title">预约详情</div>
+      <span class="nav-spacer"></span>
+    </header>
+
+    <div class="loading" id="loading-state">加载中...</div>
+
+    <div class="container hidden" id="content">
+      <!-- 状态条 -->
+      <div class="status-bar" id="status-bar">
+        <div class="status-icon" id="status-icon">⌛</div>
+        <div class="status-text">
+          <div class="status-title" id="status-title">等待安排测试日期</div>
+          <div class="status-sub" id="status-sub">工作人员将尽快与您联系</div>
+        </div>
+      </div>
+
+      <!-- 预约项目 -->
+      <div class="card">
+        <div class="section-title">预约项目</div>
+        <div class="info-row">
+          <span class="info-label">项目</span>
+          <span class="info-value" id="b-material-name">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">订单号</span>
+          <span class="info-value" id="b-id">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">提交时间</span>
+          <span class="info-value" id="b-created">-</span>
+        </div>
+        <div class="info-row hidden" id="b-breakdown-row">
+          <span class="info-label">价格明细</span>
+          <div class="breakdown-list" id="b-breakdown"></div>
+        </div>
+        <div class="info-row total-row">
+          <span class="info-label">合计</span>
+          <span class="info-value info-price" id="b-total">¥0</span>
+        </div>
+      </div>
+
+      <!-- 联系人 -->
+      <div class="card">
+        <div class="section-title">联系人</div>
+        <div class="info-row">
+          <span class="info-label">姓名</span>
+          <span class="info-value" id="b-name">-</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">手机号</span>
+          <span class="info-value" id="b-phone">-</span>
+        </div>
+        <div class="info-row hidden" id="b-org-row">
+          <span class="info-label">单位</span>
+          <span class="info-value" id="b-org"></span>
+        </div>
+      </div>
+
+      <!-- 开票信息 -->
+      <div class="card hidden" id="invoice-card">
+        <div class="section-title">开票信息</div>
+        <div class="info-row hidden" id="b-invoice-title-row">
+          <span class="info-label">抬头</span>
+          <span class="info-value" id="b-invoice-title"></span>
+        </div>
+        <div class="info-row hidden" id="b-tax-id-row">
+          <span class="info-label">税号</span>
+          <span class="info-value" id="b-tax-id"></span>
+        </div>
+      </div>
+
+      <!-- 推荐人 -->
+      <div class="card hidden" id="referrer-card">
+        <div class="section-title">推荐人</div>
+        <div class="info-row hidden" id="b-referrer-name-row">
+          <span class="info-label">姓名/代号</span>
+          <span class="info-value" id="b-referrer-name"></span>
+        </div>
+        <div class="info-row hidden" id="b-referrer-phone-row">
+          <span class="info-label">手机号</span>
+          <span class="info-value info-action" id="b-referrer-phone"></span>
+        </div>
+        <div class="referral-hint">您的订单将与该推荐人建立返现关系</div>
+      </div>
+
+      <!-- 工作人员 (提交预约单后才显示) -->
+      <div class="card staff-card hidden" id="staff-card">
+        <div class="section-title">工作人员</div>
+        <div class="info-row">
+          <span class="info-label">姓名</span>
+          <span class="info-value" id="staff-name">材料表征-小助手</span>
+        </div>
+        <div class="info-row hidden" id="staff-wechat-row">
+          <span class="info-label">微信号</span>
+          <span class="info-value info-action" id="staff-wechat-id"></span>
+        </div>
+        <div class="qr-wrap hidden" id="staff-qr-wrap">
+          <img class="qr-img" id="staff-qr-img" />
+          <span class="qr-tip">长按识别二维码加好友 / 点击查看大图</span>
+        </div>
+      </div>
+
+      <!-- 联系方式 (提交预约单后才显示, 仅在有数据时显示) -->
+      <div class="card hidden" id="contact-card">
+        <div class="section-title">联系方式</div>
+        <div class="info-row hidden" id="phone-row">
+          <span class="info-label">联系电话</span>
+          <span class="info-value" id="phone-value">-</span>
+        </div>
+        <div class="info-row hidden" id="email-row">
+          <span class="info-label">邮箱</span>
+          <span class="info-value" id="email-value">-</span>
+        </div>
+        <div class="info-row hidden" id="address-row">
+          <span class="info-label">地址</span>
+          <span class="info-value" id="address-value">-</span>
+        </div>
+        <div class="info-row hidden" id="website-row">
+          <span class="info-label">官网</span>
+          <span class="info-value info-action" id="website-value">-</span>
+        </div>
+      </div>
+
+      <!-- 一键拨号 (永远显示, 跟联系方式卡分开, 不依赖后端数据) -->
+      <div class="card call-card">
+        <a class="btn btn-call" id="btn-call" href="tel:">
+          <span class="call-icon">📞</span>
+          <span>拨打客服电话</span>
+        </a>
+        <div class="call-hint">点击直接调起系统拨号</div>
+      </div>
+
+      <!-- 操作 -->
+      <div class="action-bar">
+        <button class="btn" id="btn-home">回到首页</button>
+      </div>
+    </div>
+
+    <div class="loading hidden" id="not-found">
+      <div>预约单不存在</div>
+      <button class="btn" style="margin-top: 16px; max-width: 200px;" id="btn-home-2">回到首页</button>
+    </div>
+
+    <button class="theme-fab" data-theme-fab aria-label="切换主题">☾</button>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+    import { boot, toast, copyText, modal, getQuery, showNotice } from './js/common.js';
+    boot();
+
+    const id = parseInt(getQuery('id')) || 0;
+    const viewToken = getQuery('token') || '';  // 8/10 加: 从 URL 取 view_token
+    const loadingEl = document.getElementById('loading-state');
+    const contentEl = document.getElementById('content');
+    const notFound = document.getElementById('not-found');
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getStaffWechatId(b, c) {
+      return (b && b.staff_wechat_id) || (c && c.staff_wechat_id) || '';
+    }
+    function getStaffQrUrl(b, c) {
+      return (b && b.staff_wechat_qr_url) || (c && c.staff_wechat_qr_url) || '';
+    }
+
+    function render(booking, company) {
+      // 一键拨号 (8/10 改: 电话号码从后端 company.contact_phone 读, 没设置则不显示)
+      const callPhone = (company && company.contact_phone) || '';
+      const callBtn = document.getElementById('btn-call');
+      if (callBtn) {
+        if (callPhone) {
+          callBtn.href = 'tel:' + callPhone;
+          const callText = callBtn.querySelector('span:last-child');
+          if (callText) callText.textContent = '拨打客服电话 ' + callPhone;
+        } else {
+          const callCard = callBtn.closest('.call-card');
+          if (callCard) callCard.classList.add('hidden');
+        }
+      }
+
+      // 状态条
+      const hasDate = !!booking.test_date;
+      document.getElementById('status-icon').textContent = hasDate ? '✓' : '⌛';
+      document.getElementById('status-title').textContent = hasDate ? '已安排测试' : '等待安排测试日期';
+      if (hasDate) {
+        document.getElementById('status-sub').textContent = '测试日期: ' + booking.test_date;
+      } else {
+        document.getElementById('status-sub').textContent = '工作人员将尽快与您联系';
+      }
+      const statusBar = document.getElementById('status-bar');
+      statusBar.className = 'status-bar ' + (hasDate ? 'status-scheduled' : 'status-pending');
+
+      // 工作人员
+      const staffWechat = getStaffWechatId(booking, company);
+      const staffQr = getStaffQrUrl(booking, company);
+      if (company && (staffWechat || staffQr || company.staff_name)) {
+        document.getElementById('staff-card').classList.remove('hidden');
+        if (company.staff_name) {
+          document.getElementById('staff-name').textContent = company.staff_name;
+        }
+        if (staffWechat) {
+          const w = document.getElementById('staff-wechat-row');
+          w.classList.remove('hidden');
+          const el = document.getElementById('staff-wechat-id');
+          el.textContent = staffWechat + '  复制';
+          el.onclick = () => copyText(staffWechat);
+        }
+        if (staffQr) {
+          const w = document.getElementById('staff-qr-wrap');
+          w.classList.remove('hidden');
+          const img = document.getElementById('staff-qr-img');
+          img.src = staffQr;
+          img.onclick = () => window.open(staffQr, '_blank');
+        }
+      }
+
+      // 联系方式 (公司电话/邮箱/地址/官网)
+      if (company) {
+        let anyContact = false;
+        const setContact = (rowId, valueId, value, makeAction) => {
+          if (!value) return false;
+          anyContact = true;
+          const row = document.getElementById(rowId);
+          row.classList.remove('hidden');
+          const el = document.getElementById(valueId);
+          el.textContent = value;
+          if (makeAction) el.classList.add('action');
+          return true;
+        };
+        if (setContact('phone-row', 'phone-value', company.phone)) {
+          // ok
+        }
+        setContact('email-row', 'email-value', company.email);
+        setContact('address-row', 'address-value', company.address);
+        if (setContact('website-row', 'website-value', company.website, true)) {
+          const url = company.website.startsWith('http') ? company.website : 'https://' + company.website;
+          document.getElementById('website-value').onclick = () => window.open(url, '_blank');
+        }
+        if (anyContact) {
+          document.getElementById('contact-card').classList.remove('hidden');
+        }
+      }
+
+      // 预约项目
+      document.getElementById('b-material-name').textContent = booking.material_name || '-';
+      document.getElementById('b-id').textContent = '#' + (booking.id || '-');
+      document.getElementById('b-created').textContent = booking.created_at || '-';
+      document.getElementById('b-total').textContent = '¥' + (booking.total_price || 0);
+
+      // 价格明细
+      if (booking.price_breakdown && booking.price_breakdown.length) {
+        const row = document.getElementById('b-breakdown-row');
+        row.classList.remove('hidden');
+        document.getElementById('b-breakdown').innerHTML = booking.price_breakdown.map(r => `
+          <div class="breakdown-row">
+            <span>${escapeHtml(r.label)}</span>
+            <span class="breakdown-amt">${r.type === 'replace' ? '=' : '+'}¥${escapeHtml(String(r.amount))}</span>
+          </div>
+        `).join('');
+      }
+
+      // 联系人
+      document.getElementById('b-name').textContent = booking.contact_name || '-';
+      document.getElementById('b-phone').textContent = booking.contact_phone || '-';
+      if (booking.contact_org) {
+        document.getElementById('b-org-row').classList.remove('hidden');
+        document.getElementById('b-org').textContent = booking.contact_org;
+      }
+
+      // 开票
+      if (booking.tax_id || booking.invoice_title) {
+        document.getElementById('invoice-card').classList.remove('hidden');
+        if (booking.invoice_title) {
+          document.getElementById('b-invoice-title-row').classList.remove('hidden');
+          document.getElementById('b-invoice-title').textContent = booking.invoice_title;
+        }
+        if (booking.tax_id) {
+          document.getElementById('b-tax-id-row').classList.remove('hidden');
+          document.getElementById('b-tax-id').textContent = booking.tax_id;
+        }
+      }
+
+      // 推荐人
+      if (booking.referrer_phone || booking.referrer_name) {
+        document.getElementById('referrer-card').classList.remove('hidden');
+        if (booking.referrer_name) {
+          document.getElementById('b-referrer-name-row').classList.remove('hidden');
+          document.getElementById('b-referrer-name').textContent = booking.referrer_name;
+        }
+        if (booking.referrer_phone) {
+          const r = document.getElementById('b-referrer-phone-row');
+          r.classList.remove('hidden');
+          const el = document.getElementById('b-referrer-phone');
+          el.textContent = booking.referrer_phone + '  复制';
+          el.onclick = () => copyText(booking.referrer_phone);
+        }
+      }
+
+      // 操作
+      document.getElementById('btn-home').onclick = () => location.href = './index.html';
+      document.getElementById('btn-home-2').onclick = () => location.href = './index.html';
+
+      loadingEl.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+    }
+
+    async function load() {
+      if (!id) {
+        loadingEl.classList.add('hidden');
+        notFound.classList.remove('hidden');
+        document.getElementById('btn-home-2').onclick = () => location.href = './index.html';
+        return;
+      }
+      try {
+        const [booking, company] = await Promise.all([
+          api.getBooking(id, viewToken),  // 8/10 加: 传 token
+          api.getCompany().catch(() => null),
+        ]);
+        render(booking, company);
+        showNotice(company);
+      } catch (e) {
+        loadingEl.textContent = '加载失败: ' + e.message;
+        await modal({
+          title: '加载失败',
+          content: e.message,
+          showCancel: false,
+        });
+        // 保留 loadingEl 显示, 让用户看到错误
+      }
+    }
+
+    // 兜底: 在 load() 里的 modal 引用不到, 改用 common.modal
+    // 上面 import 漏了 modal, 这里补
+
+    load();
+  </script>
+</body>
+</html>

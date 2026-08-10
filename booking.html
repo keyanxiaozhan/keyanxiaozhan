@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2c3e50" />
+  <title>预约测试</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 顶部 nav -->
+    <header class="nav-bar">
+      <a class="nav-back" href="javascript:history.back()" aria-label="返回"></a>
+      <div class="nav-title">预约测试</div>
+      <span class="nav-spacer"></span>
+    </header>
+
+    <!-- 加载中 -->
+    <div class="loading" id="loading-state">加载中...</div>
+
+    <!-- 问卷主内容 -->
+    <div id="content" class="hidden">
+      <!-- 进度条 -->
+      <div class="progress hidden" id="progress">
+        <div class="progress-bar" id="progress-bar"></div>
+        <div class="progress-text" id="progress-text">0 / 0</div>
+      </div>
+
+      <div class="container">
+        <!-- 介绍卡 (只在第一题前显示) -->
+        <div class="card intro hidden" id="intro-card">
+          <div class="intro-title" id="intro-title"></div>
+          <div class="intro-desc hidden" id="intro-desc"></div>
+          <div class="intro-material hidden" id="intro-material"></div>
+        </div>
+
+        <!-- 当前问题 -->
+        <div class="card question hidden" id="question-card">
+          <div class="question-title" id="q-title"></div>
+          <div id="q-body"></div>
+          <div class="required-hint hidden" id="required-hint">* 必填项</div>
+        </div>
+
+        <!-- 补充信息 -->
+        <div class="card question hidden" id="extras-card">
+          <div class="question-title">补充信息</div>
+          <div class="question-sub">开票信息为选填,可不填直接提交</div>
+
+          <div class="form-group">
+            <div class="form-label">
+              <span>发票抬头</span>
+              <span class="label-opt">(选填,如需开票请填)</span>
+            </div>
+            <input class="text-input" id="extras-invoice-title" placeholder="单位/公司全称" />
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">
+              <span>税号</span>
+              <span class="label-opt">(选填,15/18/20位)</span>
+            </div>
+            <input class="text-input" id="extras-tax-id" placeholder="请输入纳税人识别号" />
+            <div class="auto-fill-hint hidden" id="auto-fill-hint">
+              <span class="auto-fill-tick">✓ </span>已从历史抬头自动匹配
+            </div>
+          </div>
+        </div>
+
+        <!-- 工作人员 (提交后联系他) -->
+        <div class="card staff-card hidden" id="staff-card">
+          <div class="section-title">工作人员</div>
+          <div class="info-row">
+            <span class="info-label">姓名</span>
+            <span class="info-value" id="staff-name">材料表征-小助手</span>
+          </div>
+          <div class="info-row hidden" id="staff-wechat-row">
+            <span class="info-label">微信号</span>
+            <span class="info-value info-action" id="staff-wechat-id"></span>
+          </div>
+          <div class="qr-wrap hidden" id="staff-qr-wrap">
+            <img class="qr-img" id="staff-qr-img" />
+            <span class="qr-tip">长按识别二维码加好友 / 点击查看大图</span>
+          </div>
+        </div>
+
+        <!-- 公司联系方式 -->
+        <div class="card hidden" id="contact-card">
+          <div class="section-title">其他联系方式</div>
+          <div class="about-row hidden" id="phone-row">
+            <span class="about-label">联系电话</span>
+            <span class="about-value" id="phone-value">-</span>
+          </div>
+          <div class="about-row hidden" id="email-row">
+            <span class="about-label">邮箱</span>
+            <span class="about-value" id="email-value">-</span>
+          </div>
+          <div class="about-row hidden" id="address-row">
+            <span class="about-label">地址</span>
+            <span class="about-value" id="address-value">-</span>
+          </div>
+          <div class="about-row hidden" id="website-row">
+            <span class="about-label">官网</span>
+            <span class="about-value action" id="website-value">-</span>
+          </div>
+          <div class="mt-12 text-light" style="font-size: 12px; line-height: 1.5;">
+            提交预约后,工作人员会通过上述方式尽快与您联系
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-bar" id="action-bar">
+          <button class="btn btn-secondary" id="btn-prev">上一步</button>
+          <button class="btn hidden" id="btn-text-next">下一题</button>
+          <button class="btn hidden" id="btn-multi-next">下一题</button>
+          <button class="btn hidden" id="btn-submit-extras">确认提交</button>
+        </div>
+      </div>
+
+      <!-- 吸底价格栏 -->
+      <div class="price-bar hidden" id="price-bar">
+        <div class="price-bar-main" id="price-bar-main">
+          <div class="price-bar-label">预估总价</div>
+          <div class="price-bar-amount" id="price-bar-amount">¥0</div>
+          <div class="price-bar-toggle hidden" id="price-bar-toggle">明细 ▴</div>
+        </div>
+        <div class="price-bar-detail hidden" id="price-bar-detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api } from './js/api.js';
+    import { QuestionnaireEngine } from './js/questionnaire.js';
+    import { calculatePrice, formatPriceImpact } from './js/price.js';
+    import { boot, toast, modal, getQuery, showNotice } from './js/common.js';
+    boot();
+
+    // ===== State =====
+    const state = {
+      materialId: parseInt(getQuery('material_id')) || 0,
+      materialSlug: getQuery('material_slug') || '',
+      materialName: decodeURIComponent(getQuery('material_name') || ''),
+      basePrice: parseFloat(getQuery('base_price')) || 0,
+      config: null,
+      engine: null,
+      currentId: null,
+      currentQ: null,
+      answers: {},
+      history: [],
+      draft: '',
+      showExtras: false,
+      submitting: false,
+      priceTotal: 0,
+      priceBreakdown: [],
+      showPriceDetail: false,
+      extras: { invoice_title: '', tax_id: '' },
+      taxIdMatched: false,
+      company: null,        // 公司信息 (含工作人员 + 联系方式), 提交前给用户看
+    };
+
+    // ===== DOM =====
+    const $ = (id) => document.getElementById(id);
+    const loadingEl = $('loading-state');
+    const contentEl = $('content');
+    const progressEl = $('progress');
+    const progressBar = $('progress-bar');
+    const progressText = $('progress-text');
+    const introCard = $('intro-card');
+    const introTitle = $('intro-title');
+    const introDesc = $('intro-desc');
+    const introMaterial = $('intro-material');
+    const questionCard = $('question-card');
+    const qTitleEl = $('q-title');
+    const qBodyEl = $('q-body');
+    const requiredHint = $('required-hint');
+    const extrasCard = $('extras-card');
+    const extrasTitle = $('extras-invoice-title');
+    const extrasTax = $('extras-tax-id');
+    const autoFillHint = $('auto-fill-hint');
+    const actionBar = $('action-bar');
+    const btnPrev = $('btn-prev');
+    const btnTextNext = $('btn-text-next');
+    const btnMultiNext = $('btn-multi-next');
+    const btnSubmit = $('btn-submit-extras');
+    const priceBar = $('price-bar');
+    const priceBarAmount = $('price-bar-amount');
+    const priceBarToggle = $('price-bar-toggle');
+    const priceBarMain = $('price-bar-main');
+    const priceBarDetail = $('price-bar-detail');
+
+    // ===== LocalStorage keys =====
+    const KEY_LAST_CONTACT = 'last_booking_contact';
+    const KEY_INVOICE_HIST = 'invoice_title_to_tax_id';
+
+    // ===== Helpers =====
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildSelectedSet(answers) {
+      const set = {};
+      Object.keys(answers || {}).forEach(qid => {
+        const v = answers[qid];
+        if (Array.isArray(v)) v.forEach(x => { if (x != null) set[x] = true; });
+        else if (v != null && v !== '') set[v] = true;
+      });
+      return set;
+    }
+
+    // 给 config 里所有 single/multi 题的 option 加 priceImpact 字段
+    function decorateOptions(config) {
+      const base = state.basePrice;
+      (config.questions || []).forEach(q => {
+        if ((q.type !== 'single' && q.type !== 'multi') || !Array.isArray(q.options)) return;
+        q.options.forEach(o => {
+          o.priceImpact = formatPriceImpact(o, base);
+        });
+      });
+    }
+
+    // 装饰当前问题 (创建新对象, 避免污染 engine 引用)
+    function decorateQuestion(q) {
+      if (!q || (q.type !== 'single' && q.type !== 'multi') || !Array.isArray(q.options)) return q;
+      const base = state.basePrice;
+      return {
+        ...q,
+        options: q.options.map(o => ({
+          ...o,
+          priceImpact: formatPriceImpact(o, base),
+        })),
+      };
+    }
+
+    // ===== 渲染 =====
+    function updateProgress() {
+      if (!state.config) return;
+      const total = state.config.questions.length;
+      const idx = state.config.questions.findIndex(q => q.id === state.currentId);
+      progressText.textContent = (idx + 1) + ' / ' + total;
+      progressBar.style.width = ((idx + 1) / total * 100) + '%';
+    }
+
+    function recalcPrice() {
+      if (!state.config) return;
+      const { total, breakdown } = calculatePrice(state.basePrice, state.config, state.answers);
+      state.priceTotal = total;
+      state.priceBreakdown = breakdown;
+    }
+
+    function renderPriceBar() {
+      const show = state.priceTotal > 0 || state.basePrice > 0;
+      if (!show) {
+        priceBar.classList.add('hidden');
+        return;
+      }
+      priceBar.classList.remove('hidden');
+      priceBarAmount.textContent = '¥' + (state.priceTotal || state.basePrice);
+
+      if (state.priceBreakdown.length > 0) {
+        priceBarToggle.classList.remove('hidden');
+        priceBarToggle.textContent = state.showPriceDetail ? '收起 ▾' : '明细 ▴';
+        if (state.showPriceDetail) {
+          priceBarDetail.classList.remove('hidden');
+          priceBarDetail.innerHTML = state.priceBreakdown.map(row => `
+            <div class="price-bar-row">
+              <span>${escapeHtml(row.label)}</span>
+              <span class="price-bar-addon">${row.type === 'replace' ? '=' : '+'}¥${escapeHtml(String(row.amount))}</span>
+            </div>
+          `).join('');
+        } else {
+          priceBarDetail.classList.add('hidden');
+        }
+      } else {
+        priceBarToggle.classList.add('hidden');
+        priceBarDetail.classList.add('hidden');
+      }
+    }
+
+    function renderIntro() {
+      // 第一题前显示, 进入下一题后隐藏
+      if (state.history.length === 0 && !state.showExtras) {
+        introCard.classList.remove('hidden');
+        introTitle.textContent = state.config.title || '请填写测试信息';
+        if (state.config.description) {
+          introDesc.textContent = state.config.description;
+          introDesc.classList.remove('hidden');
+        } else {
+          introDesc.classList.add('hidden');
+        }
+        if (state.materialName) {
+          introMaterial.textContent = '预约项目: ' + state.materialName;
+          introMaterial.classList.remove('hidden');
+        } else {
+          introMaterial.classList.add('hidden');
+        }
+      } else {
+        introCard.classList.add('hidden');
+      }
+    }
+
+    function renderQuestion() {
+      const q = state.currentQ;
+      if (!q) return;
+
+      // 标题
+      let titleHtml = '';
+      if (q.required) titleHtml += '<span class="required">*</span>';
+      titleHtml += escapeHtml(q.title);
+      qTitleEl.innerHTML = titleHtml;
+
+      // 必填提示
+      requiredHint.classList.toggle('hidden', !q.required);
+
+      // Body
+      if (q.type === 'single') {
+        qBodyEl.innerHTML = `
+          <div class="options">
+            ${q.options.map(o => {
+              const selected = state.answers[q.id] === o.value;
+              return `
+                <div class="option ${selected ? 'option-selected' : ''}" data-value="${escapeHtml(o.value)}">
+                  <div class="option-radio ${selected ? 'option-radio-on' : ''}"></div>
+                  <div class="option-main">
+                    <div class="option-row">
+                      <span class="option-label">${escapeHtml(o.label)}</span>
+                      ${o.priceImpact ? `<span class="option-price">${escapeHtml(o.priceImpact)}</span>` : ''}
+                    </div>
+                    ${o.note ? `<span class="option-note">${escapeHtml(o.note)}</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        qBodyEl.querySelectorAll('.option').forEach(el => {
+          el.onclick = () => onSelect(el.dataset.value);
+        });
+      } else if (q.type === 'multi') {
+        const selSet = buildSelectedSet(state.answers);
+        qBodyEl.innerHTML = `
+          <div class="options">
+            ${q.options.map(o => {
+              const selected = !!selSet[o.value];
+              return `
+                <div class="option option-multi ${selected ? 'option-selected' : ''}" data-value="${escapeHtml(o.value)}">
+                  <div class="option-check ${selected ? 'option-check-on' : ''}"></div>
+                  <div class="option-main">
+                    <div class="option-row">
+                      <span class="option-label">${escapeHtml(o.label)}</span>
+                      ${o.priceImpact ? `<span class="option-price">${escapeHtml(o.priceImpact)}</span>` : ''}
+                    </div>
+                    ${o.note ? `<span class="option-note">${escapeHtml(o.note)}</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        qBodyEl.querySelectorAll('.option').forEach(el => {
+          el.onclick = () => onMultiToggle(el.dataset.value);
+        });
+      } else if (q.type === 'text') {
+        qBodyEl.innerHTML = `
+          <div class="input-wrap">
+            <input class="text-input" type="text" placeholder="${escapeHtml(q.placeholder || '请输入')}" value="${escapeHtml(state.draft)}" />
+          </div>
+        `;
+        const input = qBodyEl.querySelector('input');
+        input.focus();
+        input.oninput = (e) => { state.draft = e.target.value; };
+        input.onkeydown = (e) => { if (e.key === 'Enter') onTextNext(); };
+      } else if (q.type === 'textarea') {
+        qBodyEl.innerHTML = `
+          <div class="input-wrap">
+            <textarea class="text-area" placeholder="${escapeHtml(q.placeholder || '请输入')}">${escapeHtml(state.draft)}</textarea>
+          </div>
+        `;
+        const ta = qBodyEl.querySelector('textarea');
+        ta.oninput = (e) => { state.draft = e.target.value; };
+      }
+    }
+
+    function renderActionBar() {
+      // 全部按钮先 hide
+      btnPrev.classList.add('hidden');
+      btnTextNext.classList.add('hidden');
+      btnMultiNext.classList.add('hidden');
+      btnSubmit.classList.add('hidden');
+
+      // 上一步: 有 history 时显示
+      if (state.history.length > 0 || state.showExtras) {
+        btnPrev.classList.remove('hidden');
+      }
+
+      if (state.showExtras) {
+        btnSubmit.classList.remove('hidden');
+      } else {
+        const q = state.currentQ;
+        if (!q) return;
+        if (q.type === 'text' || q.type === 'textarea') {
+          btnTextNext.classList.remove('hidden');
+          btnTextNext.textContent = q.next ? '下一题' : '提交预约';
+        } else if (q.type === 'multi') {
+          btnMultiNext.classList.remove('hidden');
+          btnMultiNext.textContent = q.next ? '下一题' : '提交预约';
+        }
+        // single: 选项点击即跳转, 不需要专门的下一题按钮
+      }
+    }
+
+    function render() {
+      if (state.showExtras) {
+        progressEl.classList.add('hidden');
+        questionCard.classList.add('hidden');
+        extrasCard.classList.remove('hidden');
+        renderIntro();
+        renderPriceBar();
+        renderActionBar();
+        // 渲染工作人员 + 公司联系方式 (只在补充信息步骤显示)
+        renderContactCards(state.company);
+        return;
+      }
+
+      // 问题模式
+      if (!state.currentQ) return;
+
+      progressEl.classList.remove('hidden');
+      extrasCard.classList.add('hidden');
+      questionCard.classList.remove('hidden');
+      renderIntro();
+      renderQuestion();
+      renderPriceBar();
+      renderActionBar();
+      updateProgress();
+    }
+
+    // ===== 行为 =====
+    function onSelect(value) {
+      const q = state.currentQ;
+      if (!q) return;
+      state.answers = { ...state.answers, [q.id]: value };
+      recalcPrice();
+      const nextId = state.engine.getNextId(q.id, state.answers);
+      gotoNext(state.answers, nextId, '');
+    }
+
+    function onMultiToggle(value) {
+      const q = state.currentQ;
+      if (!q) return;
+      const cur = state.answers[q.id] || [];
+      const arr = Array.isArray(cur) ? cur.slice() : [cur];
+      const idx = arr.indexOf(value);
+      if (idx >= 0) arr.splice(idx, 1);
+      else arr.push(value);
+      state.answers = { ...state.answers, [q.id]: arr };
+      recalcPrice();
+      renderQuestion();  // 重渲染以更新选项高亮
+      renderPriceBar();
+    }
+
+    function onTextNext() {
+      const q = state.currentQ;
+      if (!q) return;
+      const value = (state.draft !== '' ? state.draft : (state.answers[q.id] || ''));
+      if (!state.engine.validate(q, value)) {
+        toast('该项必填', 'error');
+        return;
+      }
+      state.answers = { ...state.answers, [q.id]: value };
+      const nextId = state.engine.getNextId(q.id, state.answers);
+      gotoNext(state.answers, nextId, '');
+    }
+
+    function onMultiNext() {
+      const q = state.currentQ;
+      if (!q) return;
+      const value = state.answers[q.id] || [];
+      if (!state.engine.validate(q, value)) {
+        toast('请至少选一项', 'error');
+        return;
+      }
+      const nextId = state.engine.getNextId(q.id, state.answers);
+      gotoNext(state.answers, nextId, '');
+    }
+
+    function gotoNext(answers, nextId) {
+      state.history = [...state.history, state.currentId];
+      if (!nextId) {
+        // 问卷答完, 进入补充信息
+        state.showExtras = true;
+        state.answers = answers;
+        render();
+        return;
+      }
+      const nextQ = state.engine.getCurrentQuestion(nextId);
+      if (!nextQ) {
+        state.showExtras = true;
+        state.answers = answers;
+        render();
+        return;
+      }
+      state.answers = answers;
+      state.currentId = nextId;
+      state.currentQ = decorateQuestion(nextQ);
+      state.draft = (nextQ.type === 'text' || nextQ.type === 'textarea') ? (answers[nextId] || '') : '';
+      render();
+    }
+
+    function prevStep() {
+      if (state.showExtras) {
+        if (state.history.length === 0) return;
+        const history = state.history.slice();
+        const prevId = history.pop();
+        const prevQ = state.engine.getCurrentQuestion(prevId);
+        state.showExtras = false;
+        state.currentId = prevId;
+        state.currentQ = decorateQuestion(prevQ);
+        state.history = history;
+        state.draft = (prevQ.type === 'text' || prevQ.type === 'textarea') ? (state.answers[prevId] || '') : '';
+        render();
+        return;
+      }
+      if (state.history.length === 0) return;
+      const history = state.history.slice(0, -1);
+      const prevId = state.history[state.history.length - 1];
+      const prevQ = state.engine.getCurrentQuestion(prevId);
+      state.currentId = prevId;
+      state.currentQ = decorateQuestion(prevQ);
+      state.history = history;
+      state.draft = (prevQ.type === 'text' || prevQ.type === 'textarea') ? (state.answers[prevId] || '') : '';
+      render();
+    }
+
+    // ===== 补充信息 =====
+    function onExtrasInput(field, value) {
+      const trimmed = (value || '').trim();
+      if (field === 'invoice_title') {
+        state.extras.invoice_title = value;
+        try {
+          const hist = JSON.parse(localStorage.getItem(KEY_INVOICE_HIST) || '{}');
+          const matched = trimmed && hist[trimmed];
+          if (matched && !state.extras.tax_id) {
+            state.extras.tax_id = matched;
+            extrasTax.value = matched;
+            state.taxIdMatched = true;
+            autoFillHint.classList.remove('hidden');
+            return;
+          }
+        } catch (_) { /* 忽略 */ }
+        state.taxIdMatched = false;
+        autoFillHint.classList.add('hidden');
+      } else if (field === 'tax_id') {
+        state.extras.tax_id = value;
+        if (value) {
+          state.taxIdMatched = false;
+          autoFillHint.classList.add('hidden');
+        }
+      }
+    }
+
+    // ===== 提交 =====
+    async function submitBooking() {
+      if (state.submitting) return;
+
+      const answers = state.answers;
+      const contactName = (answers.q_name || '').trim();
+      const contactPhone = (answers.q_phone || '').trim();
+      const contactOrg = (answers.q_org || '').trim();
+
+      if (!contactName) { toast('请填写联系人姓名', 'error'); return; }
+      if (!contactPhone) { toast('请填写联系人电话', 'error'); return; }
+      if (!/^1[3-9]\d{9}$/.test(contactPhone)) { toast('请输入正确的手机号', 'error'); return; }
+
+      // 缓存联系信息
+      try {
+        localStorage.setItem(KEY_LAST_CONTACT, JSON.stringify({ name: contactName, phone: contactPhone, org: contactOrg }));
+      } catch (_) { /* 忽略 */ }
+
+      // 缓存抬头 → 税号
+      const invTitle = (state.extras.invoice_title || '').trim();
+      const invTax = (state.extras.tax_id || '').trim();
+      if (invTitle && invTax) {
+        try {
+          const hist = JSON.parse(localStorage.getItem(KEY_INVOICE_HIST) || '{}');
+          hist[invTitle] = invTax;
+          const keys = Object.keys(hist);
+          if (keys.length > 50) delete hist[keys[0]];
+          localStorage.setItem(KEY_INVOICE_HIST, JSON.stringify(hist));
+        } catch (_) { /* 忽略 */ }
+      }
+
+      state.submitting = true;
+      btnSubmit.disabled = true;
+      const originalSubmitText = btnSubmit.textContent;
+      btnSubmit.textContent = '提交中...';
+
+      try {
+        const result = await api.submitBooking({
+          material_id: state.materialId,
+          material_slug: state.materialSlug,
+          material_name: state.materialName,
+          answers,
+          contact_name: contactName,
+          contact_phone: contactPhone,
+          contact_org: contactOrg,
+          tax_id: invTax,
+          invoice_title: invTitle,
+          client_total_price: state.priceTotal,
+          client_breakdown: state.priceBreakdown,
+        });
+
+        // 价格双向校验
+        const clientTotal = Number(state.priceTotal) || 0;
+        const serverTotal = Number(result && result.total_price) || 0;
+        if (Math.abs(clientTotal - serverTotal) > 0.01) {
+          await modal({
+            title: '价格不一致,已拦截',
+            content: '本地算 ¥' + clientTotal.toFixed(2) + '\n服务算 ¥' + serverTotal.toFixed(2) + '\n\n可能后端版本不对或价格配置有改动, 请联系客服核对后再提交',
+            confirmText: '我知道了',
+            showCancel: false,
+          });
+          state.submitting = false;
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = originalSubmitText;
+          return;
+        }
+
+        // 跳到详情页 (8/10 加: 带上 view_token, 否则后端 401)
+        const bookingId = (result && (result.booking_id || result.id)) || 0;
+        const viewToken = (result && result.view_token) || '';
+        const detailUrl = './booking-detail.html?id=' + bookingId +
+            (viewToken ? '&token=' + encodeURIComponent(viewToken) : '');
+        location.href = detailUrl;
+      } catch (e) {
+        state.submitting = false;
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = originalSubmitText;
+        await modal({
+          title: '提交失败',
+          content: (e.message || '') + '\n请检查后端是否启动,以及 API 地址是否正确',
+          showCancel: false,
+        });
+      }
+    }
+
+    // ===== 初始化 =====
+    function bindEvents() {
+      btnPrev.onclick = prevStep;
+      btnTextNext.onclick = onTextNext;
+      btnMultiNext.onclick = onMultiNext;
+      btnSubmit.onclick = submitBooking;
+
+      extrasTitle.addEventListener('input', (e) => onExtrasInput('invoice_title', e.target.value));
+      extrasTax.addEventListener('input', (e) => onExtrasInput('tax_id', e.target.value));
+
+      priceBarMain.onclick = () => {
+        if (state.priceBreakdown.length === 0) return;
+        state.showPriceDetail = !state.showPriceDetail;
+        renderPriceBar();
+      };
+    }
+
+    // ===== 公司信息渲染 (在补充信息步骤显示) =====
+    function setContactRow(rowId, valueId, value, isAction = false) {
+      if (!value) return false;
+      const row = document.getElementById(rowId);
+      const v = document.getElementById(valueId);
+      row.classList.remove('hidden');
+      v.textContent = value;
+      if (isAction) v.classList.add('action');
+      return true;
+    }
+
+    function renderContactCards(company) {
+      if (!company) return;
+
+      // 工作人员卡
+      if (company.staff_wechat_id || company.staff_wechat_qr_url) {
+        const card = document.getElementById('staff-card');
+        card.classList.remove('hidden');
+        if (company.staff_name) document.getElementById('staff-name').textContent = company.staff_name;
+        if (company.staff_wechat_id) {
+          const row = document.getElementById('staff-wechat-row');
+          row.classList.remove('hidden');
+          const el = document.getElementById('staff-wechat-id');
+          el.textContent = company.staff_wechat_id + '  复制';
+          el.onclick = () => copyText(company.staff_wechat_id);
+        }
+        if (company.staff_wechat_qr_url) {
+          const w = document.getElementById('staff-qr-wrap');
+          w.classList.remove('hidden');
+          const img = document.getElementById('staff-qr-img');
+          img.src = company.staff_wechat_qr_url;
+          img.onclick = () => window.open(company.staff_wechat_qr_url, '_blank');
+        }
+      }
+
+      // 公司联系方式卡 (任一字段有值就显示整个卡)
+      const website = company.website;
+      const anyContact = company.phone || company.email || company.address || website;
+      if (anyContact) {
+        document.getElementById('contact-card').classList.remove('hidden');
+        setContactRow('phone-row', 'phone-value', company.phone);
+        setContactRow('email-row', 'email-value', company.email);
+        setContactRow('address-row', 'address-value', company.address);
+        if (website) {
+          setContactRow('website-row', 'website-value', website, true);
+          document.getElementById('website-value').onclick = () => {
+            const url = website.startsWith('http') ? website : 'https://' + website;
+            window.open(url, '_blank');
+          };
+        }
+      }
+    }
+
+    // ===== 加载 =====
+    async function loadQuestionnaire() {
+      try {
+        // 并行拉问卷 + 公司信息 (公司信息只用于补充信息页显示)
+        const [config] = await Promise.all([
+          api.getQuestionnaire(state.materialSlug),
+          api.getCompany().then(c => { state.company = c; showNotice(c); }).catch(() => { /* 静默, 不阻塞 */ }),
+        ]);
+        // 缓存 (备用, 详情页会用)
+        window.__questionsCache = config.questions || [];
+
+        decorateOptions(config);
+        const engine = new QuestionnaireEngine(config);
+        const startId = engine.getStartId();
+        const startQ = engine.getCurrentQuestion(startId);
+
+        state.config = config;
+        state.engine = engine;
+        state.currentId = startId;
+        state.currentQ = decorateQuestion(startQ);
+        state.history = [];
+        state.answers = {};
+
+        // 预填: 从 localStorage 读最近联系人
+        try {
+          const last = JSON.parse(localStorage.getItem(KEY_LAST_CONTACT) || '{}');
+          const prefill = {};
+          if (last.name && !state.answers.q_name) prefill.q_name = last.name;
+          if (last.phone && !state.answers.q_phone) prefill.q_phone = last.phone;
+          if (last.org && !state.answers.q_org) prefill.q_org = last.org;
+          if (Object.keys(prefill).length) state.answers = { ...state.answers, ...prefill };
+        } catch (_) { /* 忽略 */ }
+
+        recalcPrice();
+        loadingEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+        render();
+      } catch (e) {
+        loadingEl.textContent = '加载失败: ' + e.message;
+        toast('加载失败: ' + e.message, 'error');
+      }
+    }
+
+    bindEvents();
+    loadQuestionnaire();
+  </script>
+</body>
+</html>
