@@ -1,7 +1,7 @@
 // js/api.js
 // 后端 API 封装 (fetch 版)
 // 后端地址写死 (跟小程序一致, 不允许运行时切换)
-const API_BASE = 'https://wechat.keyanxiaozhan.top';
+const API_BASE = 'https://weorder.keyanxiaozhan.top';
 
 // 从 localStorage 读 token (跟小程序 getApp().globalData.authToken 对应)
 // 故意用最简单方式,避免 import auth.js 形成循环依赖
