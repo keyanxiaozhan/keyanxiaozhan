@@ -81,8 +81,12 @@ export async function fetchMe() {
   if (!isLoggedIn()) return null;
   try {
     const res = await api.getMe();
-    // res: { user, stats }
-    if (res && res.user) setStoredUser(res.user);
+    // res: { user, stats }; 合并本地登录响应，避免旧接口/缓存漏掉 referral_code。
+    if (res && res.user) {
+      const mergedUser = { ...(getStoredUser() || {}), ...res.user };
+      setStoredUser(mergedUser);
+      return { ...res, user: mergedUser };
+    }
     return res || null;
   } catch (e) {
     // 401 / token 失效, 清空

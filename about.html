@@ -164,7 +164,7 @@
     import { api } from './js/api.js';
     import { boot, toast, copyText, modal, showNotice } from './js/common.js';
     import {
-      login, register, logout, fetchMe, isLoggedIn, validatePhone, validatePassword,
+      login, register, logout, fetchMe, getStoredUser, isLoggedIn, validatePhone, validatePassword,
     } from './js/auth.js';
     boot();
 
@@ -351,7 +351,10 @@
       const u = state.user || {};
       $('profile-phone').textContent = u.phone || '-';
       $('profile-id').textContent = u.id || '-';
-      $('profile-referral').value = u.referral_code || '';
+      const referralCode = u.referral_code || u.referralCode || '';
+      const referralInput = $('profile-referral');
+      referralInput.value = referralCode;
+      referralInput.placeholder = referralCode ? '' : '邀请码加载失败，请刷新';
 
       const s = state.stats || {};
       $('stat-invites').textContent = s.invite_count != null ? s.invite_count : 0;
@@ -364,7 +367,7 @@
       try {
         const res = await fetchMe();
         if (res) {
-          state.user = res.user || null;
+          state.user = { ...(getStoredUser() || {}), ...(res.user || {}) };
           state.stats = res.stats || null;
         } else {
           state.user = null;
