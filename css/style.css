@@ -1326,10 +1326,18 @@ body.dark .auth-error {
 }
 
 .referral-row .text-input {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   font-family: ui-monospace, "SF Mono", Consolas, monospace;
   letter-spacing: 1px;
   font-weight: 600;
+}
+
+.referral-row .btn {
+  width: auto;
+  flex: 0 0 auto;
+  min-height: 44px;
+  white-space: nowrap;
 }
 
 .btn-sm {
